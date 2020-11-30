@@ -130,7 +130,7 @@ ggplot(data = mean.sd, aes(x= h)) +
 
 
 #plot the two dataframes together (raw data)
-ggplot(data = anterior, aes(y= area.pct.change , x= min, group= larva, colour= treatment)) +
+ggplot(data = anterior, aes(y= area.pct.change , x= h, group= larva)) +
   geom_line() +
   geom_line(data = posterior, linetype= "dashed") +
   labs(x = "min", y = "% change") +
