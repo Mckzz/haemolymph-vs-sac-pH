@@ -111,8 +111,7 @@ ggplot(data = mean.sd, aes(x= h)) +
   geom_errorbar(aes(x= h, group= antpost, colour= antpost,
                     ymin= area - stdv, 
                     ymax= area + stdv), 
-                group= "antpost",
-                width= 0.5) +
+                width= 0.2) +
   scale_color_manual(values=c("#D55E00", "#009e73")) +
   labs(x = "h", y = "area (mm^2)") +
   theme_classic()
