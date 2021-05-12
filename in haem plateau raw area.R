@@ -39,17 +39,37 @@ print(meansd, n= 25)
 
 #plot means/ sd
 ggplot(data = meansd, aes(x= h)) +
-  geom_point(aes(y= mean, colour= ant.post)) +
-  geom_line(aes(y= mean, group= ant.post, colour= ant.post)) +
-  geom_errorbar(aes(x= h, group= ant.post, colour= ant.post,
+  geom_point(aes(y= mean, 
+                 colour= ant.post)) +
+  geom_line(aes(y= mean, 
+                group= ant.post, 
+                colour= ant.post)) +
+  geom_errorbar(aes(x= h, 
+                    group= ant.post, 
+                    colour= ant.post,
                     ymin= mean - sd, 
                     ymax= mean + sd), 
                 group= "ant.post",
                 width= 0.1) +
   scale_color_manual(values=c("#D55E00", "#009e73")) +
-  labs(x = "h", y = "Area (mm^2)") +
+  labs(x = "h", 
+       y = "Area (mm^2)") +
   theme_classic()
 
+##############  stats for in haem  ################
+
+
+install.packages("MCMCglmm")
+library(MCMCglmm)
+
+mcmod.sup <-
+  MCMCglmm::MCMCglmm(
+    area ~ h-1, random = ~larva,
+    data = DMSOlong, scale = FALSE,
+    nitt = 1300000, thin = 1000, burnin = 300000, 
+    verbose = FALSE
+  )
+summary(mcmod.sup)
 
 ###############      arranging data for pH standards      ############### 
 
@@ -57,7 +77,8 @@ standards.long <-
   pivot_longer(
     pH_standards,
     cols = c(`6`, `7`, `8`),
-    names_to = "pH", values_to = "area")
+    names_to = "pH", 
+    values_to = "area")
 
 print(standards.long, n= 36)
 
@@ -86,15 +107,22 @@ print(std_stats)
 
 
 ## plotting standards
-ggplot(data = std_stats, aes(x= pH)) +
-  geom_point(aes(y= area_mean, colour= ant.post)) +
-  geom_line(aes(y= area_mean, group= ant.post, colour= ant.post)) +
-  geom_errorbar(aes(x= pH, group= ant.post, colour= ant.post,
+ggplot(data = std_stats, 
+       aes(x= pH)) +
+  geom_point(aes(y= area_mean, 
+                 colour= ant.post)) +
+  geom_line(aes(y= area_mean, 
+                group= ant.post, 
+                colour= ant.post)) +
+  geom_errorbar(aes(x= pH, 
+                    group= ant.post, 
+                    colour= ant.post,
                     ymin= area_mean - area_sd, 
                     ymax= area_mean + area_sd), 
                 group= "ant.post",
                 width= 0.2) +
   scale_color_manual(values=c("#D55E00", "#009e73")) +
   #ylim(0.3, 1) +
-  labs(x = "pH", y = "Area change (%)") +
+  labs(x = "pH", 
+       y = "Area change (%)") +
   theme_classic()
