@@ -1,18 +1,14 @@
 install.packages("tidyverse")
 library(tidyverse)
-library(tidyr)
-library(dplyr)
 library(ggplot2)
-library(Hmisc)
-install.packages("Hmisc")
 
-rm(DMSO_timecourse)
-head(DMSO_timecourse)
+DMSO_timecourse <- read_csv("~/student documents/UBC/Research/chaoborus imaging/in vivo, methylcellulose/Endothelium vs. haem pH with DMSO, standard pH curve (outlined)/DMSO timecourse.csv")
+View(DMSO_timecourse)
 
-is.data.frame(DMSO_timecourse)
+pH_standards <- read_csv("~/student documents/UBC/Research/chaoborus imaging/in vivo, methylcellulose/Endothelium vs. haem pH with DMSO, standard pH curve (outlined)/pH standards.csv")
+View(pH_standards)
 
 #make single time variable
-
 DMSOlong <-
   pivot_longer(
     DMSO_timecourse,
@@ -32,86 +28,73 @@ DMSOlong$h <- as_factor(DMSOlong$h)
 
 print(DMSOlong)
 
-# makes separate anterior/ posterior dataframes
-anterior <- subset(DMSOlong, ant.post == "ant", 
-                   select = c(larva, h, area))
-
-posterior <- subset(DMSOlong, ant.post == "post", 
-                    select = c(larva, h, area))
-
-print(anterior, n=30)
-
-#making means
-ant.means <- anterior %>% 
-  group_by(h) %>% 
+# make means and sd
+meansd <- DMSOlong %>%
+  group_by(ant.post, h) %>% 
   dplyr::summarise(
-    ant = mean(area))
+    mean = mean(area), 
+    sd = sd(area)) 
 
-print(ant.means, n= 36)
-
-post.means <- posterior %>% 
-  group_by(h) %>% 
-  summarise(
-    post = mean(area))
-
-print(post.means, n= 36)
-
-#combining means
-means <- ant.means
-
-means$post <- post.means$post
-print(means, n= 36)
-
-#make sd values
-ant.stdv <- anterior %>%
-  group_by(h) %>%
-  dplyr::summarize(
-    ant = sd(area))
-
-print(ant.stdv)
-
-post.stdv <- posterior %>%
-  group_by(h) %>%
-  dplyr::summarize(
-    post = sd(area))
-
-print(post.stdv)
-
-#combine sd values
-stdv <- post.stdv
-stdv$ant <- ant.stdv$ant
-print(stdv)
-
-#combine %change means and sdtvs using left join after pivoting long
-mean.long <- means %>% 
-  pivot_longer(
-    cols = c(`ant`, `post`),
-    names_to = "antpost", values_to = "area")
-
-print(mean.long)
-
-stdv.long <- stdv %>%
-  pivot_longer(
-    cols = c(`ant`, `post`),
-    names_to = "antpost", values_to = "stdv")
-
-print(stdv.long)
-
-mean.sd <-
-  left_join(mean.long, stdv.long, by = c("h", "antpost"))
-
-print(mean.sd)
-
-######## plotting ########
+print(meansd, n= 25)
 
 #plot means/ sd
-ggplot(data = mean.sd, aes(x= h)) +
-  geom_point(aes(y= area, colour= antpost)) +
-  geom_line(aes(x= h, y= area, group= antpost, colour= antpost)) +
-  geom_errorbar(aes(x= h, group= antpost, colour= antpost,
-                    ymin= area - stdv, 
-                    ymax= area + stdv), 
+ggplot(data = meansd, aes(x= h)) +
+  geom_point(aes(y= mean, colour= ant.post)) +
+  geom_line(aes(y= mean, group= ant.post, colour= ant.post)) +
+  geom_errorbar(aes(x= h, group= ant.post, colour= ant.post,
+                    ymin= mean - sd, 
+                    ymax= mean + sd), 
+                group= "ant.post",
+                width= 0.1) +
+  scale_color_manual(values=c("#D55E00", "#009e73")) +
+  labs(x = "h", y = "Area (mm^2)") +
+  theme_classic()
+
+
+###############      arranging data for pH standards      ############### 
+
+standards.long <- 
+  pivot_longer(
+    pH_standards,
+    cols = c(`6`, `7`, `8`),
+    names_to = "pH", values_to = "area")
+
+print(standards.long, n= 36)
+
+#making % change column
+standards.long.pct <- standards.long %>%
+  group_by(ant.post, larva) %>%
+  mutate(
+    area.pct.change = ((area - area[1]) / area[1]
+    )*100) %>%
+  as_tibble(DMSOlong.pct) %>%
+  ungroup()
+
+print(standards.long.pct, n= 50)
+
+# make means and sd
+
+std_stats <-
+  standards.long.pct %>%
+  select(-larva) %>% ## exclude larva
+  group_by(pH, ant.post) %>% 
+  ## now compute mean and sd:
+  summarize(across(everything(), na.rm= T,
+                   tibble::lst(mean = mean, sd = sd)))
+
+print(std_stats)
+
+
+## plotting standards
+ggplot(data = std_stats, aes(x= pH)) +
+  geom_point(aes(y= area_mean, colour= ant.post)) +
+  geom_line(aes(y= area_mean, group= ant.post, colour= ant.post)) +
+  geom_errorbar(aes(x= pH, group= ant.post, colour= ant.post,
+                    ymin= area_mean - area_sd, 
+                    ymax= area_mean + area_sd), 
+                group= "ant.post",
                 width= 0.2) +
   scale_color_manual(values=c("#D55E00", "#009e73")) +
-  labs(x = "h", y = "area (mm^2)") +
+  #ylim(0.3, 1) +
+  labs(x = "pH", y = "Area change (%)") +
   theme_classic()
